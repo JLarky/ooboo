@@ -1,3 +1,5 @@
+from std.collections import List
+from std.os.process import Process
 from std.sys import argv
 from std.subprocess import run
 
@@ -56,6 +58,59 @@ def bool_json(value: Bool) -> String:
     return "false"
 
 
+def exit_code(mut process: Process) raises -> Int:
+    var status = process.wait()
+    if status.exit_code:
+        return status.exit_code.value()
+    return -1
+
+
+def run_argv(path: String, args: List[String]) raises -> Int:
+    var process = Process.run(path, args)
+    return exit_code(process)
+
+
+def run_boo(args: List[String]) raises -> Int:
+    return run_argv("boo", args)
+
+
+def boo_new(session: String) raises -> Int:
+    var args = List[String]()
+    args.append("new")
+    args.append(session)
+    args.append("-d")
+    args.append("--")
+    args.append("sh")
+    return run_boo(args)
+
+
+def boo_send(session: String, payload: String) raises -> Int:
+    var args = List[String]()
+    args.append("send")
+    args.append(session)
+    args.append("--text")
+    args.append(payload)
+    args.append("--enter")
+    return run_boo(args)
+
+
+def boo_wait_idle(session: String, timeout: String) raises -> Int:
+    var args = List[String]()
+    args.append("wait")
+    args.append(session)
+    args.append("--idle")
+    args.append("--timeout")
+    args.append(timeout)
+    return run_boo(args)
+
+
+def boo_kill(session: String) raises -> Int:
+    var args = List[String]()
+    args.append("kill")
+    args.append(session)
+    return run_boo(args)
+
+
 def join_command_args(start: Int) -> String:
     args = argv()
     var command = String(args[start])
@@ -66,35 +121,21 @@ def join_command_args(start: Int) -> String:
 
 
 def run_shell(command: String, timeout: String) raises:
-    var session = "ooboo-run-shell-" + run("date +%s%N")
-    var quoted_session = shell_quote(session)
-    var quoted_timeout = shell_quote(timeout)
+    var session = "ooboo-run-shell"
 
-    _ = run("boo new " + quoted_session + " -d -- sh")
+    var new_code = boo_new(session)
 
     var payload = command
     payload += "\n__ooboo_status=$?"
     payload += "\nprintf '\\n__OOBOO_EXIT:%s__\\n' \"$__ooboo_status\""
 
-    _ = run(
-        "boo send "
-        + quoted_session
-        + " --text "
-        + shell_quote(payload)
-        + " --enter"
-    )
+    var send_code = boo_send(session, payload)
+    var wait_code = boo_wait_idle(session, timeout)
+    var wait_ok = wait_code == 0
 
-    var wait_output = run(
-        "boo wait "
-        + quoted_session
-        + " --idle --timeout "
-        + quoted_timeout
-        + " 2>/dev/null; printf '\\n__OOBOO_WAIT_STATUS:%s__\\n' \"$?\""
-    )
-    var wait_ok = wait_output.find("__OOBOO_WAIT_STATUS:0__") != -1
-
-    var peek_json = run("boo peek " + quoted_session + " --json")
-    _ = run("boo kill " + quoted_session)
+    # Process.run currently exposes status but not captured stdout; keep capture isolated.
+    var peek_json = run("boo peek " + shell_quote(session) + " --json")
+    var cleanup_code = boo_kill(session)
 
     var timed_out = not wait_ok
     var has_exit_marker = wait_ok and peek_json.find("__OOBOO_EXIT:") != -1
@@ -114,6 +155,10 @@ def run_shell(command: String, timeout: String) raises:
     print('  "command_succeeded": ' + bool_json(command_ok) + ",")
     print('  "session": ' + json_string(session) + ",")
     print('  "command": ' + json_string(command) + ",")
+    print('  "new_exit_code": ' + String(new_code) + ",")
+    print('  "send_exit_code": ' + String(send_code) + ",")
+    print('  "wait_exit_code": ' + String(wait_code) + ",")
+    print('  "cleanup_exit_code": ' + String(cleanup_code) + ",")
     print('  "cleanup": ' + json_string("killed") + ",")
     print('  "boo_peek": ' + peek_json)
     print("}")
