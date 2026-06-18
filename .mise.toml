@@ -1,19 +1,22 @@
 [tools]
-uv = "latest"
-
-[env]
-UV_PROJECT_ENVIRONMENT = ".venv"
-UV_CACHE_DIR = ".uv-cache"
-UV_PYTHON_INSTALL_DIR = ".uv-python"
+pixi = "latest"
 
 [tasks.install]
-description = "Install project-local Mojo environment"
-run = "uv sync"
+description = "Install the Pixi-managed Mojo environment"
+run = "pixi install"
 
 [tasks.mojo-version]
-description = "Print the project-local Mojo version"
-run = "uv run mojo --version"
+description = "Print the Pixi-managed Mojo version"
+run = "pixi run mojo-version"
 
 [tasks.mojo]
-description = "Run Mojo with project-local dependencies"
-run = "uv run mojo \"$@\""
+description = "Run Mojo through Pixi"
+run = "pixi run mojo \"$@\""
+
+[tasks.hello]
+description = "Run the Mojo hello smoke test"
+run = "pixi run hello"
+
+[tasks.ooboo]
+description = "Run the ooboo Mojo CLI"
+run = "pixi run ooboo \"$@\""
