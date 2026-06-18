@@ -17,4 +17,5 @@ mise run mojo-version
 mise run mojo hello.mojo
 mise run hello
 mise run ooboo -- --help
+mise run ooboo -- run-shell "printf hello"
 ```

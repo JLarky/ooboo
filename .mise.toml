@@ -19,4 +19,4 @@ run = "pixi run hello"
 
 [tasks.ooboo]
 description = "Run the ooboo Mojo CLI"
-run = "pixi run ooboo \"$@\""
+run = "pixi run mojo ooboo.mojo \"$@\""
