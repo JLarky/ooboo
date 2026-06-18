@@ -1,0 +1,12 @@
+[workspace]
+name = "ooboo"
+channels = ["https://conda.modular.com/max-nightly/", "conda-forge"]
+platforms = ["linux-aarch64", "osx-arm64"]
+
+[dependencies]
+mojo = "*"
+
+[tasks]
+hello = "mojo hello.mojo"
+mojo-version = "mojo --version"
+ooboo = "mojo ooboo.mojo"
